@@ -1,11 +1,11 @@
-# Manufacturing Line Anomaly Detection — Computer Vision + Statistical Process Control
+# Manufacturing Line Anomaly Detection - Computer Vision + Statistical Process Control
 
 Detecting anomalies in a repetitive manual assembly task using two independent computer-vision
 approaches built on the same video dataset: an **event-based pipeline** (Phases 1–2) that checks
 whether the right steps happened in the right order and within the right time, and a **shape-based
 pipeline** (Phase 5) that checks whether the entire motion pattern of a cycle looks statistically
 normal, moment by moment. The second approach is a standalone proof-of-concept, not a patch on the
-first — see [How the two approaches differ](#how-the-two-approaches-differ) below.
+first - see [How the two approaches differ](#how-the-two-approaches-differ) below.
 
 ## What this project does
 
@@ -14,12 +14,12 @@ into **78 cycles**, each cycle made up of **7 short task videos** recorded in se
 (`Center_Assembly_Jig → Right_Screw_Feeder → Center_Assembly_Jig`, roughly). The notebook:
 
 1. Tracks motion inside three fixed workstation zones (material bin, screw feeder, assembly jig)
-   using classical background subtraction — no manual labeling required.
+   using classical background subtraction - no manual labeling required.
 2. Builds a rule-based system (Markov transition matrix + Gaussian duration model, YOLOv8-verified)
    that flags cycles with the wrong step order, missing steps, or abnormal timing.
 3. Builds a second, independent statistical system that layers all 78 cycles' motion curves on top
    of each other, learns the "normal" shape and variation per workstation zone, and flags cycles
-   whose motion pattern deviates from it — catching things like hesitation or extra fumbling that
+   whose motion pattern deviates from it - catching things like hesitation or extra fumbling that
    the first system cannot see, because it never checks the *shape* of the motion.
 4. Validates the second system with a proper train/test split and a synthetic anomaly injection
    suite (missing task, scrambled task order, rushed/partial cycle).
@@ -59,7 +59,7 @@ VideoDataset/
 pip install opencv-python numpy matplotlib pandas natsort scipy ultralytics
 ```
 
-`ultralytics` downloads the YOLOv8n weights (`yolov8n.pt`, ~6 MB) automatically on first run —
+`ultralytics` downloads the YOLOv8n weights (`yolov8n.pt`, ~6 MB) automatically on first run -
 an internet connection is needed the first time you run the YOLO cells.
 
 ### 2. Point the notebook at your dataset
@@ -73,7 +73,7 @@ BASE_DATASET_PATH = r"D:\your\path\to\VideoDataset\Cycles"        # Cell 13, ful
 ```
 
 The workstation zone coordinates (`WORKSTATION_ROIS`, in Cells 2 and 13) are calibrated to this
-specific camera angle — if you use your own footage, you'll need to re-draw these rectangles to
+specific camera angle - if you use your own footage, you'll need to re-draw these rectangles to
 match your camera's frame.
 
 ### 3. Run top to bottom
@@ -99,15 +99,15 @@ Cell 1) can be lowered for a quick smoke test before running the full dataset.
 ## How the two approaches differ
 
 **Phase 1–2 (event-based):** the continuous motion signal is smoothed and thresholded into a
-binary "zone active / not active" flag. Everything downstream — the Markov transition matrix, the
-Gaussian duration model, YOLO verification — operates on these discrete events. This makes it fast
+binary "zone active / not active" flag. Everything downstream - the Markov transition matrix, the
+Gaussian duration model, YOLO verification - operates on these discrete events. This makes it fast
 and robust to frame-level noise, but structurally blind to *how* an activation happened: a worker
 who hesitates or fumbles but still finishes in the right order and within the normal time window
 looks completely normal to this system.
 
 **Phase 5 (shape-based):** the full continuous motion curve is kept, never collapsed into events.
 Every cycle is resampled onto a common 0–100% "cycle progress" axis (since cycles vary in length)
-and layered on top of the others per zone, producing a mean curve and a ±2σ normal-variation band —
+and layered on top of the others per zone, producing a mean curve and a ±2σ normal-variation band -
 the same idea as a Statistical Process Control (SPC) chart on a production line. A new cycle is
 flagged if too much of its curve falls outside that band, or if its total duration is a statistical
 outlier. This catches anomalies in motion *quality*, not just sequence and timing, at the cost of
@@ -122,7 +122,7 @@ step.
 
 Phase 5, Part 2 validates the shape-based classifier two ways:
 
-**Held-out validation** — the "golden band" is built from ~85% of the 78 cycles only; the
+**Held-out validation** - the "golden band" is built from ~85% of the 78 cycles only; the
 remaining cycles are scored without ever being seen during baseline construction.
 
 ```
@@ -130,7 +130,7 @@ PASS: 10/11   FAIL: 1/11
 False positive rate on unseen normal cycles: 9.1%
 ```
 
-**Synthetic anomaly injection suite** — three known-bad variants are built by manipulating a real
+**Synthetic anomaly injection suite** - three known-bad variants are built by manipulating a real
 cycle's task videos, then scored the same way:
 
 | Test case | Result | Detail |
@@ -146,13 +146,13 @@ All three injected anomaly types were correctly flagged, each with a comfortable
 ## Known limitations and future work
 
 - **Linear time-normalization is sensitive to timing jitter.** Because every cycle is stretched
-  onto a fixed 0–100% axis, a worker who reaches a zone slightly earlier or later than usual — a
-  normal amount of human variation — can occasionally register as a shape deviation near the edge
+  onto a fixed 0–100% axis, a worker who reaches a zone slightly earlier or later than usual - a
+  normal amount of human variation - can occasionally register as a shape deviation near the edge
   of a usage window. This was the source of most of the false positives encountered during
   calibration (see the notebook's markdown cells for the full debugging narrative).
 - **Dynamic Time Warping (DTW)** is the natural next step: instead of a fixed linear stretch, DTW
   would let each cycle align to its own event timing before comparison, which should reduce
-  timing-jitter false positives further — at the cost of significantly more implementation and
+  timing-jitter false positives further - at the cost of significantly more implementation and
   computational complexity (DTW Barycenter Averaging would be needed to build the reference curve).
 - The workstation ROI coordinates and `EXPECTED_SEQUENCE` are hard-coded for this specific camera
   setup and task; adapting this to a different line requires re-calibrating both.
