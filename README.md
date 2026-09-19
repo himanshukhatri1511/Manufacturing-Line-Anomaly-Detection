@@ -30,6 +30,8 @@ into **78 cycles**, each cycle made up of **7 short task videos** recorded in se
 |---|---|
 | `Manufacturing_Anomaly_Detection_Phase5_Fixed.ipynb` | The full notebook: Phases 1–2 (event-based pipeline) followed by Phase 5 and Phase 5 Part 2 (shape-based pipeline) |
 
+## Dataset link - https://www.kaggle.com/datasets/shreshthvashisht/manufacturing-dataset
+
 ## Dataset structure this notebook expects
 
 ```
